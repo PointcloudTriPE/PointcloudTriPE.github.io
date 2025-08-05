@@ -370,3 +370,4 @@ class TriPE(nn.Module):
         x_flat = self.proj(x2.view(B * N, C)).view(B, N, -1)
         x_feat = x_flat.max(dim=1)[0]
         return self.head(x_feat)
+</div> ```
