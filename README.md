@@ -126,7 +126,8 @@ integrating our triadic positional encoding.
 三. Illustration of the proposed triadic positional encoding modules. From left to right: Multi-Scale Positional Encoding,
 Local Geometric Encoding, and Relative Positional Encoding.
 <img width="1194" height="420" alt="2025-08-05 19-03-08 的屏幕截图" src="https://github.com/user-attachments/assets/85aebfdf-4056-487c-b21d-6a6ed9c16c3c" />
-四. Experiments
+四. Experiments. We evaluate our model on five widely-used point cloud benchmarks spanning three representative tasks. For shape classification, we use ModelNet40  and ScanObjectNN; for part segmentation, ShapeNetPart; and for indoor scene semantic segmentation, S3DIS and ScanNet v2.
+
 <img width="654" height="596" alt="2025-08-05 19-05-13 的屏幕截图" src="https://github.com/user-attachments/assets/1a1352ee-27c3-41b2-b151-f4f49c66e9c8" />
 <img width="620" height="516" alt="2025-08-05 19-05-30 的屏幕截图" src="https://github.com/user-attachments/assets/2233871a-ad12-4773-be16-f161cd0290d4" />
 <img width="650" height="508" alt="2025-08-05 19-05-34 的屏幕截图" src="https://github.com/user-attachments/assets/37187347-cef2-4207-8ca2-dc3c45486ff3" />
