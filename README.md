@@ -1,6 +1,6 @@
 Below is the core code of our proposed PointTriPE model. The complete project will be released upon official paper acceptance.
 <pre> 
-import torch 00 
+import torch  
 import torch.nn as nn  
 import torch.nn.functional as F  
 from torch.nn.init import trunc_normal_  
