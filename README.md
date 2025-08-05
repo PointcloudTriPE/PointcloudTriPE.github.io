@@ -205,7 +205,7 @@ class Block(nn.Module):
         x = x + self.drop_paths[1](self.mlps[1](x))
         return x
 
-</pre>pre> 
+
 class SetAbstraction(nn.Module):  
     def __init__(self, args, depth):  
         super().__init__()  
@@ -299,5 +299,6 @@ class TriPE(nn.Module):
         B, N, C = x2.shape  
         x_flat = self.proj(x2.view(B * N, C)).view(B, N, -1)  
         x_feat = x_flat.max(dim=1)[0]  
-        return self.head(x_feat)  
+        return self.head(x_feat) 
+    </pre>pre> 
 
