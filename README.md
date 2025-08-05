@@ -1,4 +1,5 @@
 Below is the core code of our proposed PointTriPE model. The complete project will be released upon official paper acceptance.
+
 ```python
 import torch
 import torch.nn as nn
@@ -367,4 +368,3 @@ class TriPE(nn.Module):
         x_flat = self.proj(x2.view(B * N, C)).view(B, N, -1)
         x_feat = x_flat.max(dim=1)[0]
         return self.head(x_feat)
-```python
