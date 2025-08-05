@@ -1,140 +1,6 @@
-Below is the core code of our proposed PointTriPE model. The complete project will be released upon official paper acceptance.
+一. Below is the core code of our proposed PointTriPE model. The complete project will be released upon official paper acceptance.
+1. MSPE (Multi-Scale Positional Encoding) is designed to capture global contextual information at multiple geometric scales. It begins by applying an MLP to the raw 3D coordinates to obtain an initial positional embedding. Then, a hierarchical point cloud pyramid is constructed, over which lightweight self-attention layers are applied at each scale to model global structures. Cross-scale feature fusion is used to integrate information from different resolutions. Finally, the aggregated positional priors are injected back into the point features through projection layers. MSPE provides stable and hierarchical spatial cues that enhance the model’s ability to capture long-range dependencies and semantic structures, all while maintaining computational efficiency.
 <pre> 
-import torch  
-import torch.nn as nn  
-import torch.nn.functional as F  
-from torch.nn.init import trunc_normal_  
-from pathlib import Path  
-import sys  
-sys.path.append(str(Path(file).absolute().parent.parent))  
-from utils.timm.models.layers import DropPath  
-from utils.cutils import knn_edge_maxpooling  
-from pointnet2_ops import pointnet2_utils  
-
-def init_linear(layer, std=0.02):  
-  trunc_normal_(layer.weight, std=std)  
-  if layer.bias is not None:  
-    nn.init.constant_(layer.bias, 0.)  
-
-def index_points(points, idx):  
-    B = points.shape[0]  
-    view_shape = list(idx.shape)  
-    C = points.shape[-1]  
-    if idx.dim() == 3:  
-        view_shape.append(1)  
-        idx_expanded = idx.unsqueeze(-1).expand(-1, -1, -1, C)  
-        pts_expanded = points.unsqueeze(1).expand(-1, view_shape[1], -1, -1)  
-        return torch.gather(pts_expanded, 2, idx_expanded)  
-    else:  
-        view_shape.append(C)  
-        batch_indices = torch.arange(B, device=points.device).view(B, *([1] * (idx.dim() - 1))).expand_as(idx)  
-        return points[batch_indices, idx, :]  
-
-def calc_pwd(x, eps=1e-6):  
-    x2 = x.pow(2).sum(dim=-1, keepdim=True)  
-    dist2 = x2 + x2.transpose(1, 2) - 2 * x @ x.transpose(1, 2)  
-    return dist2.clamp(min=eps)  
-
-class LFP(nn.Module):  
-    def __init__(self, in_dim, out_dim, bn_momentum, init=0.):  
-        super().__init__()  
-        self.proj = nn.Linear(in_dim, out_dim, bias=False)  
-        self.bn = nn.BatchNorm1d(out_dim, momentum=bn_momentum)  
-        nn.init.constant_(self.bn.weight, init)  
-    def forward(self, x, knn):  
-        B, N, C = x.shape  
-        x = self.proj(x)  
-        x = knn_edge_maxpooling(x, knn, self.training)  
-        x = self.bn(x.view(B * N, -1)).view(B, N, -1)  
-        return x  
-
-class Mlp(nn.Module):  
-    def __init__(self, in_dim, mlp_ratio, bn_momentum, act, init=0.):  
-        super().__init__()  
-        hid_dim = round(in_dim * mlp_ratio)  
-        self.mlp = nn.Sequential(  
-            nn.Linear(in_dim, hid_dim),  
-            act(),  
-            nn.Linear(hid_dim, in_dim, bias=False),  
-            nn.BatchNorm1d(in_dim, momentum=bn_momentum),  
-        )  
-        nn.init.constant_(self.mlp[-1].weight, init)  
-    def forward(self, x):  
-        B, N, C = x.shape  
-        return self.mlp(x.view(B * N, -1)).view(B, N, -1)  
-
-
-class MoECodebookPE(nn.Module):  
-    def __init__(self, K: int, D: int, E: int = 8, hidden: int = 32):  
-        super().__init__()  
-        self.E = E  
-        self.K = K  
-        self.D = D  
-        self.codebooks = nn.Parameter(torch.randn(E, K, D))  
-        self.gate = nn.Sequential(  
-            nn.Linear(3, hidden),  
-            nn.ReLU(inplace=True),  
-            nn.Linear(hidden, E)  
-        )  
-        self.expert_proj = nn.Sequential(  
-            nn.Linear(3, hidden),  
-            nn.ReLU(inplace=True),  
-            nn.Linear(hidden, K)  
-        )  
-    def forward(self, rel_pos: torch.Tensor) -> torch.Tensor:  
-        B, N, M, _ = rel_pos.shape  
-        rp = rel_pos.view(-1, 3)  
-        gate_logits = self.gate(rp)  
-        gate_w = F.softmax(gate_logits, dim=-1)  
-        expert_logits = self.expert_proj(rp)  
-        expert_w = F.softmax(expert_logits, dim=-1)  
-        expert_w_expand = expert_w  
-        cb = self.codebooks  
-        pe_experts = torch.einsum('bk,ekd->bed', expert_w_expand, cb)  
-        gate_w_expand = gate_w.unsqueeze(-1)  
-        pe = (gate_w_expand * pe_experts).sum(dim=1)  
-        pe = pe.view(B, N, M, self.D)  
-        return pe  
-
-
-class Q_KV_Attention(nn.Module):  
-    def __init__(self, dim, num_heads=4):  
-        super().__init__()  
-        n_bins = 16  
-        rpe_dim = 64  
-        self.dim = dim  
-        self.num_heads = num_heads  
-        self.rpe_net = MoECodebookPE(K=n_bins, D=rpe_dim)  
-        self.rpe_proj = nn.ModuleDict({  
-            'k': nn.Linear(rpe_dim, dim),  
-            'v': nn.Linear(rpe_dim, dim)  
-        })  
-        for m in self.rpe_proj.values():  
-            nn.init.xavier_uniform_(m.weight)  
-            nn.init.zeros_(m.bias)  
-        self.attn = nn.MultiheadAttention(embed_dim=dim, num_heads=num_heads, batch_first=True)  
-        self.lbr = nn.Sequential(  
-            nn.LayerNorm(dim),  
-            nn.Linear(dim, dim),  
-            nn.ReLU()  
-        )  
-    def forward(self, xyz: torch.Tensor, x: torch.Tensor, knn: torch.Tensor):  
-        xs = index_points(x, knn)  
-        xyzs = index_points(xyz, knn)  
-        B, N, K, C = xs.shape  
-        rel_pos = xyzs - xyz.unsqueeze(2)  
-        pe = self.rpe_net(rel_pos)  
-        k_rpe = self.rpe_proj['k'](pe).view(B * N, K, C)  
-        v_rpe = self.rpe_proj['v'](pe).view(B * N, K, C)  
-        q = x.view(B * N, 1, C)  
-        k = xs.view(B * N, K, C) + k_rpe  
-        v = xs.view(B * N, K, C) + v_rpe  
-        out, _ = self.attn(q, k, v)  
-        out = self.lbr(out)  
-        out = out.view(B, N, C)  
-        return out  
-
-
 class MultiScaleAttentionPE(nn.Module):
     def __init__(self, embed_dim, num_heads=2):
         super().__init__()
@@ -183,30 +49,10 @@ class MultiScaleAttentionPE(nn.Module):
         feat0_pe = torch.cat([f01, f0], dim=-1)
         feat0_pe = self.proj0(feat0_pe)
         return feat2_pe, feat1_pe, feat0_pe
-
-
-class Block(nn.Module):
-    def __init__(self, dim, depth, drop_path, mlp_ratio, bn_momentum, act):
-        super().__init__()
-        self.depth = depth
-        self.lfps = nn.ModuleList([Q_KV_Attention(dim, dim // 48) for _ in range(depth)])
-        self.mlp = Mlp(dim, mlp_ratio, bn_momentum, act, init=0.2)
-        self.mlps = nn.ModuleList([Mlp(dim, mlp_ratio, bn_momentum, act) for _ in range(depth // 2)])
-        drop_rates = drop_path if isinstance(drop_path, list) else torch.linspace(0., drop_path, depth).tolist()
-        self.drop_paths = nn.ModuleList([DropPath(dpr) for dpr in drop_rates])
-        self.gpe = nn.Linear(64, dim, bias=False)
-
-    def forward(self, xyz, x, knn, g_pos):
-        x = x + self.gpe(g_pos)
-        x = x + self.drop_paths[0](self.mlp(x))
-        x = x + self.drop_paths[0](self.lfps[0](xyz, x, knn))
-        x = x + self.drop_paths[0](self.mlps[0](x))
-        x = x + self.drop_paths[1](self.lfps[1](xyz, x, knn))
-        x = x + self.drop_paths[1](self.mlps[1](x))
-        return x
-
-
-class SetAbstraction(nn.Module):  
+</pre>
+2. LGE (Local Geometric Encoding) focuses on capturing fine-grained geometric patterns in local neighborhoods, such as edges, curvatures, and local structural variations. For each center point, LGE encodes the relative offsets $\Delta p$ between the point and its $k$ nearest neighbors using a shared lightweight MLP. The resulting features are aggregated via max pooling to obtain a geometry-aware local positional embedding. This module operates without relying on any rigid structural assumptions, is highly efficient, and significantly enhances the model’s sensitivity to boundary regions and geometric details. LGE serves to complement the global cues by injecting fine-scale spatial information into the point representations.
+<pre> 
+class LGE(nn.Module):  
     def __init__(self, args, depth):  
         super().__init__()  
         self.depth = depth  
@@ -229,76 +75,62 @@ class SetAbstraction(nn.Module):
         self.nbr_bn = nn.BatchNorm1d(self.dim, momentum=args.bn_momentum)  
         nn.init.constant_(self.nbr_bn.weight, 0.8 if self.first else 0.2)  
         self.nbr_proj = nn.Identity() if self.first else nn.Linear(nbr_out, self.dim, bias=False)  
-        if not self.first:  
-            in_dim = args.dims[depth - 1]  
-            self.lfp = LFP(in_dim, self.dim, args.bn_momentum, init=0.3)  
-            self.skip = nn.Sequential(  
-                nn.Linear(in_dim, self.dim, bias=False),  
-                nn.BatchNorm1d(self.dim, momentum=args.bn_momentum)  
-            )  
-        self.block = Block(self.dim, args.depths[depth], args.drop_paths[depth], args.mlp_ratio, args.bn_momentum,  
-                           args.act)  
-    def forward(self, xyz, x, pwd, g_pos):  
+    def forward(self, xyz, pwd):  
         B = xyz.size(0)  
         _, knn = pwd[:, :self.n, :self.n].topk(k=self.k, dim=-1, largest=False)  
-        if self.depth != 0:  
-            x = x[:, :self.n].contiguous()  
-            B0, N0, C0 = x.shape  
-            x_skip = self.skip(x.view(B0 * N0, C0)).view(B0, N0, -1)  
-            x_prop = self.lfp(x, knn)  
-            x_new = x_skip + x_prop  
         xyz_new = xyz[:, :self.n].contiguous()  
         nbr = (index_points(xyz_new, knn) - xyz_new.unsqueeze(-2)).view(-1, 3)  
         nbr = self.nbr_embed(nbr).view(B * self.n, self.k, -1).max(dim=1)[0]  
         nbr = self.nbr_proj(nbr)  
         nbr = self.nbr_bn(nbr).view(B, self.n, -1)  
-        x_new = nbr if self.first else nbr + x_new  
-        x_new = self.block(xyz_new, x_new, knn, g_pos)  
-        return xyz_new, x_new  
-
-
-class TriPE(nn.Module):  
-    def __init__(self, args):  
+        return xyz_new
+</pre>
+3.RPE (Relative Positional Encoding) is designed to model pairwise spatial relationships between points, bridging the mid-scale geometric semantics not captured by global or local encodings. Given the relative offset $\Delta p_{ij}$ between two points, RPE uses a gated Mixture-of-Experts (MoE) structure to produce a dynamic embedding. Specifically, a gating network assigns weights to multiple experts based on the offset, and each expert performs soft assignment over a directional codebook to encode fine-grained geometric variations. The two-stage soft mapping serves as a nonlinear kernel approximation, enabling the modeling of directional, asymmetric, and diverse spatial dependencies. Unlike static encodings, RPE modifies the Key and Value vectors in attention computation, allowing the attention mechanism to be geometry-aware at the pairwise level.   
+<pre>
+class MoECodebookPE(nn.Module):  
+    def __init__(self, K: int, D: int, E: int = 8, hidden: int = 32):  
         super().__init__()  
-        self.sa0 = SetAbstraction(args, 0)  
-        self.sa1 = SetAbstraction(args, 1)  
-        self.sa2 = SetAbstraction(args, 2)  
-        self.proj = nn.Sequential(  
-            nn.BatchNorm1d(args.dims[-1], momentum=args.bn_momentum),  
-            nn.Linear(args.dims[-1], args.bottleneck),  
-            args.act()  
+        self.E = E  
+        self.K = K  
+        self.D = D  
+        self.codebooks = nn.Parameter(torch.randn(E, K, D))  
+        self.gate = nn.Sequential(  
+            nn.Linear(3, hidden),  
+            nn.ReLU(inplace=True),  
+            nn.Linear(hidden, E)  
         )  
-        self.head = nn.Sequential(  
-            nn.Linear(args.bottleneck, 512, bias=False),  
-            nn.BatchNorm1d(512, momentum=args.bn_momentum),  
-            args.act(),  
-            nn.Linear(512, 256, bias=False),  
-            nn.BatchNorm1d(256, momentum=args.bn_momentum),  
-            args.act(),  
-            nn.Dropout(.5),  
-            nn.Linear(256, args.num_classes)  
+        self.expert_proj = nn.Sequential(  
+            nn.Linear(3, hidden),  
+            nn.ReLU(inplace=True),  
+            nn.Linear(hidden, K)  
         )  
-        self.apply(self._init_weights)  
-        self.pe0 = MultiScaleAttentionPE(64)  
-    def _init_weights(self, m):  
-        if isinstance(m, nn.Linear):  
-            trunc_normal_(m.weight, std=.02)  
-            if m.bias is not None:  
-                nn.init.constant_(m.bias, 0)  
-    def forward(self, xyz):  
-        idx = pointnet2_utils.furthest_point_sample(xyz, 1024).long()  
-        xyz = torch.gather(xyz, 1, idx.unsqueeze(-1).expand(-1, -1, 3))  
-        pwd = calc_pwd(xyz)  
-        xyz0 = xyz[:, :1024].contiguous()  
-        xyz1 = xyz[:, :256].contiguous()  
-        xyz2 = xyz[:, :64].contiguous()  
-        xyz_pe2, xyz_pe1, xyz_pe0 = self.pe0(xyz0, xyz1, xyz2, pwd)  
-        xyz0, x0 = self.sa0(xyz, None, pwd, xyz_pe0)  
-        xyz1, x1 = self.sa1(xyz0, x0, pwd, xyz_pe1)  
-        xyz2, x2 = self.sa2(xyz1, x1, pwd, xyz_pe2)  
-        B, N, C = x2.shape  
-        x_flat = self.proj(x2.view(B * N, C)).view(B, N, -1)  
-        x_feat = x_flat.max(dim=1)[0]  
-        return self.head(x_feat) 
-    </pre>pre> 
+    def forward(self, rel_pos: torch.Tensor) -> torch.Tensor:  
+        B, N, M, _ = rel_pos.shape  
+        rp = rel_pos.view(-1, 3)  
+        gate_logits = self.gate(rp)  
+        gate_w = F.softmax(gate_logits, dim=-1)  
+        expert_logits = self.expert_proj(rp)  
+        expert_w = F.softmax(expert_logits, dim=-1)  
+        expert_w_expand = expert_w  
+        cb = self.codebooks  
+        pe_experts = torch.einsum('bk,ekd->bed', expert_w_expand, cb)  
+        gate_w_expand = gate_w.unsqueeze(-1)  
+        pe = (gate_w_expand * pe_experts).sum(dim=1)  
+        pe = pe.view(B, N, M, self.D)  
+        return pe  
+</pre>
+二. Overview of our proposed network architecture. The left side illustrates a U-Net–style point transformer framework
+used for semantic segmentation and classification. The right side shows the core attention-based feature extraction module
+integrating our triadic positional encoding.
+<img width="1224" height="478" alt="2025-08-05 19-03-01 的屏幕截图" src="https://github.com/user-attachments/assets/ac0055d8-9d67-4d3e-981b-48b21b350f47" />
+三. Illustration of the proposed triadic positional encoding modules. From left to right: Multi-Scale Positional Encoding,
+Local Geometric Encoding, and Relative Positional Encoding.
+<img width="1194" height="420" alt="2025-08-05 19-03-08 的屏幕截图" src="https://github.com/user-attachments/assets/85aebfdf-4056-487c-b21d-6a6ed9c16c3c" />
+四. Experiments
+<img width="654" height="596" alt="2025-08-05 19-05-13 的屏幕截图" src="https://github.com/user-attachments/assets/1a1352ee-27c3-41b2-b151-f4f49c66e9c8" />
+<img width="620" height="516" alt="2025-08-05 19-05-30 的屏幕截图" src="https://github.com/user-attachments/assets/2233871a-ad12-4773-be16-f161cd0290d4" />
+<img width="650" height="508" alt="2025-08-05 19-05-34 的屏幕截图" src="https://github.com/user-attachments/assets/37187347-cef2-4207-8ca2-dc3c45486ff3" />
+<img width="1362" height="344" alt="2025-08-05 19-05-55 的屏幕截图" src="https://github.com/user-attachments/assets/669b4f11-b78a-41ff-87ec-ed79143b8a16" />
+<img width="660" height="442" alt="2025-08-05 19-06-08 的屏幕截图" src="https://github.com/user-attachments/assets/9d39485b-0be9-43e6-a9b3-3de005957cd3" />
+
 
