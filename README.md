@@ -1,5 +1,7 @@
 Below is the core code of our proposed PointTriPE model. The complete project will be released upon official paper acceptance.
 
+<div style="overflow-x:auto; padding: 10px; background-color: #f7f7f7; border: 1px solid #ddd; border-radius: 4px;">
+
 ```python
 import torch
 import torch.nn as nn
