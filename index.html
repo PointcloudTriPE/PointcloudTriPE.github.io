@@ -1,0 +1,724 @@
+<!DOCTYPE html> <!--告诉浏览器这是一个 HTML5 页面-->
+<html>  <!--网页的所有内容都在html中-->
+
+<head>  <!--网页的设置-->
+    <!-- Google 分析工具代码 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-55V1E709SK"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+
+        gtag('config', 'G-55V1E709SK');
+    </script>
+    <!--网页设置部分-->
+    <meta charset="utf-8">
+    <meta name="description"
+          content="Triadic Positional Encoding for Point Clouds with Multi-Scale, Local, and Relative Embeddings">
+    <meta name="keywords"
+          content="Point Cloud, Positional Encoding, Relative Position, Multi-Scale, Local Geometry, Relative Positional Encoding">
+    <meta name="viewport" content="width=device-width, initial-scale=1">  <!--手机显示设置-->
+    <title>PointTriPE: Triadic Positional Encoding for Point Clouds with Multi-Scale, Local, and Relative Embeddings
+    </title>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/xxxxx"></script>
+    <!--比如有多少人访问了你的网站，他们点击了什么,把后面收集到的数据都关联到这个项目上-->
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-PYVRSFMDRL');
+    </script>
+    <!--给网页加载一个 CSS static文件字体，滚动....-->
+    <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+    <link rel="stylesheet" href="./static/css/bulma.min.css">
+    <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+    <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+    <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+    <link rel="stylesheet" href="./static/css/index.css">
+    <!--给网页引入 JavaScript 脚本，用于添加交互功能，比如按钮点击、图片轮播、滑动条等行为文件-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script defer src="./static/js/fontawesome.all.min.js"></script>
+    <script src="./static/js/bulma-carousel.min.js"></script>
+    <script src="./static/js/bulma-slider.min.js"></script>
+    <script src="./static/js/index.js"></script>
+    <script src="./static/js/script.js"></script>
+
+</head>
+
+
+<!--下面开始正文-->
+<body>
+<section class="hero"><!-- Bulma 的 hero 区块，通常用于顶部主视觉区域 -->
+    <div class="hero-body"><!-- 内容主体 -->
+        <div class="container is-max-desktop"><!-- 设置最大宽度的容器 -->
+            <div class="columns is-centered"> <!-- 水平居中列 -->
+                <div class="column has-text-centered"><!-- 单列 + 文本居中 -->
+                    <h1 class="title is-1 publication-title">
+                        <span style="color: #4CAF50 ;font-weight: bolder;"></span>
+                        PointTriPE: Triadic Positional Encoding for Point Clouds with Multi-Scale, Local,
+                        and Relative Embeddings</h1><!--题目信息-->
+
+                    <div class="is-size-5 publication-authors">
+                        <span class="author-block"> <a href="">Anonymous</a> </span>
+                    </div>
+
+                    <!-- TODO: update paper and video link once upload -->
+
+                    <!--这块代码的作用是展示两个按钮链接：一个是论文PDF，一个是代码GitHub-->
+                    <div class="column has-text-centered">
+                    <span class="link-block">
+                <a class="external-link button is-normal is-rounded is-dark"
+                   style="pointer-events: none; cursor: default;">
+                <span class="icon">
+                    <i class="fas fa-file-pdf"></i>
+                </span>
+                <span>The paper will be released</span>
+              </a>
+              </span>
+                        <!-- Code Link. -->
+                        <span class="link-block">
+                <!-- href="https://github.com/"-->
+                <a class="external-link button is-normal is-rounded is-dark"
+                   style="pointer-events: none; cursor: default;">
+                  <span class="icon">
+                    <i class="fab fa-github"></i>
+                  </span>
+                  <span>The code will be released</span>
+                </a>
+              </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <!-- Abstract. -->
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-four-fifths">
+                    <h2 class="title is-3">Overview</h2>
+                    <div class="content has-text-justified">
+                        <p>
+                            Transformer architectures have been extensively validated for modeling structural
+                            relationships in natural language and vision tasks, yet positional encoding in 3D point
+                            cloud learning is often overlooked or oversimplified. In this paper, we systematically
+                            review and analyze existing point cloud positional encoding strategies, revealing their
+                            limitations in scale awareness and local geometric capture. Motivated by the observation
+                            that no single encoding can simultaneously capture global, intermediate, and local spatial
+                            dependencies, we propose a Triadic positional encoding framework comprising:
+                            Multi-Scale Positional Encoding, which leverages coarse-to-fine hierarchical
+                            attention combined with delta-coordinate aggregation to capture global and intermediate
+                            contextual cues; Local Geometric Encoding, which focuses on extracting fine-level
+                            local structural patterns; Relative Positional Encoding, which generates enriched
+                            relative position embeddings by applying expert-level gating and soft assignment to each
+                            point-pair’s relative coordinates, and then aggregating the corresponding codebook vectors
+                            via weighted combination. We integrate these three encoding modules into a hierarchical
+                            point cloud backbone and evaluate our approach on multiple challenging 3D benchmarks,
+                            including ModelNet40, ScanObjectNN, ShapeNetPart, S3DIS and ScanNet v2. Experimental results
+                            demonstrate consistent and significant improvements in semantic segmentation, part
+                            segmentation, and object classification tasks, validating the critical role of carefully
+                            designed positional encodings for 3D perception.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <!-- Concurrent Work. -->
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-full-width">
+                    <h2 class="title is-3">Method Overview</h2>
+                    <div class="content has-text-justified">
+                        <img src="./dynamic/result/worknet.png">
+                        <p><strong>Overview of our proposed network architecture. </strong> The left side illustrates a
+                            U-Net–style point transformer framework used for semantic segmentation and classification.
+                            The right side shows the core attention-based feature extraction module integrating our
+                            triadic positional encoding.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-full-width">
+                    <div class="content has-text-justified">
+                        <img src="./dynamic/result/PE.png">
+                        <p><strong>Illustration of the proposed triadic positional encoding modules. </strong> From left
+                            to right: Multi-Scale Positional Encoding, Local Geometric Encoding, and Relative Positional
+                            Encoding</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-full-width">
+                    <div class="content has-text-justified">
+                        <h2 class="title is-3 has-text-centered">PointTriPE Modules</h2>
+                        <p>
+                            Below is the core implementation of our proposed <strong>PointTriPE</strong> framework,
+                            which integrates three complementary encoding strategies for 3D point clouds. The full
+                            codebase will be released upon paper acceptance.
+                        </p>
+                        <ul>
+                            <li><strong>MSPE</strong> (Multi-Scale Positional Encoding) captures global context across
+                                hierarchical geometric scales. It applies MLPs and multihead attention over a point
+                                cloud pyramid, integrating cross-scale features into a positional prior that enriches
+                                long-range dependencies efficiently.
+                            </li>
+                            <li><strong>LGE</strong> (Local Geometric Encoding) enhances sensitivity to fine-grained
+                                structures such as edges and curvature. It encodes relative positions to neighboring
+                                points using a shared MLP, followed by max pooling, enabling local geometry-aware
+                                embeddings.
+                            </li>
+                            <li><strong>RPE</strong> (Relative Positional Encoding) bridges mid-scale spatial relations
+                                via a Mixture-of-Experts (MoE) mechanism. It models pairwise offsets with directional
+                                codebooks and dynamic gating, enriching attention weights with asymmetric and nonlinear
+                                geometric priors.
+                            </li>
+                        </ul>
+                        <p>
+                            Each module plays a distinct role in PointTriPE's positional encoding hierarchy—global,
+                            local, and relational—working together to enable expressive and efficient 3D representation
+                            learning.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-full-width">
+                    <div class="content has-text-justified">
+                        <h2 class="title is-3 has-text-centered">Experiments</h2>
+                        <p>We evaluate our model on five widely-used point cloud benchmarks spanning three
+                            representative tasks. For shape
+                            classification, we use ModelNet40 and ScanObjectNN; for part segmentation, ShapeNetPart; and
+                            for indoor scene
+                            semantic segmentation, S3DIS and ScanNet v2.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered">
+
+                <!-- Classification Results on ModelNet40 -->
+                <div class="column">
+                    <div class="content has-text-centered">
+                        <p><strong>Classification results on ModelNet40</strong></p>
+                        <p><small>OA: overall accuracy. mAcc: mean per-class accuracy.</small></p>
+                    </div>
+                    <table class="table is-bordered is-striped is-fullwidth is-hoverable">
+                        <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>OA (%)</th>
+                            <th>mAcc (%)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>PointNet</td>
+                            <td>89.2</td>
+                            <td>86.0</td>
+                        </tr>
+                        <tr>
+                            <td>PointNet++</td>
+                            <td>93.0</td>
+                            <td>90.7</td>
+                        </tr>
+                        <tr>
+                            <td>DGCNN</td>
+                            <td>92.9</td>
+                            <td>90.2</td>
+                        </tr>
+                        <tr>
+                            <td>PCT</td>
+                            <td>93.2</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>PTv1</td>
+                            <td>93.7</td>
+                            <td>90.6</td>
+                        </tr>
+                        <tr>
+                            <td>CurveNet</td>
+                            <td>93.8</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>PointMLP</td>
+                            <td>94.1</td>
+                            <td>91.3</td>
+                        </tr>
+                        <tr>
+                            <td>GBNet</td>
+                            <td>93.8</td>
+                            <td>91.0</td>
+                        </tr>
+                        <tr>
+                            <td>PointNeXt</td>
+                            <td>94.0</td>
+                            <td>91.1</td>
+                        </tr>
+                        <tr>
+                            <td>PTv2</td>
+                            <td>94.2</td>
+                            <td>91.6</td>
+                        </tr>
+                        <tr>
+                            <td>DualMLP</td>
+                            <td>93.7</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PointTriPE (ours)</strong></td>
+                            <td><strong>94.0</strong></td>
+                            <td><strong>91.8</strong></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Part Segmentation Results on ShapeNetPart -->
+                <div class="column">
+                    <div class="content has-text-centered">
+                        <p><strong>Part segmentation results on ShapeNetPart</strong></p>
+                        <p><small>“Ins. mIoU” denotes instance-average mIoU; “Cls. mIoU” denotes class-average
+                            mIoU.</small></p>
+                    </div>
+                    <table class="table is-bordered is-striped is-fullwidth is-hoverable">
+                        <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Ins. mIoU</th>
+                            <th>Cls. mIoU</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>PointNet</td>
+                            <td>83.7</td>
+                            <td>80.4</td>
+                        </tr>
+                        <tr>
+                            <td>PointNet++</td>
+                            <td>85.1</td>
+                            <td>81.9</td>
+                        </tr>
+                        <tr>
+                            <td>DGCNN</td>
+                            <td>85.2</td>
+                            <td>82.3</td>
+                        </tr>
+                        <tr>
+                            <td>PTv1</td>
+                            <td>86.6</td>
+                            <td>83.7</td>
+                        </tr>
+                        <tr>
+                            <td>AGCN</td>
+                            <td>86.9</td>
+                            <td>85.1</td>
+                        </tr>
+                        <tr>
+                            <td>RSCNN</td>
+                            <td>86.2</td>
+                            <td>84.0</td>
+                        </tr>
+                        <tr>
+                            <td>CurveNet</td>
+                            <td>86.8</td>
+                            <td>84.2</td>
+                        </tr>
+                        <tr>
+                            <td>OTMae3D</td>
+                            <td>86.8</td>
+                            <td>85.1</td>
+                        </tr>
+                        <tr>
+                            <td>PointJEPA</td>
+                            <td>83.9</td>
+                            <td>85.8</td>
+                        </tr>
+                        <tr>
+                            <td>AdaCrossNet</td>
+                            <td>-</td>
+                            <td>85.1</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PointTriPE (ours)</strong></td>
+                            <td><strong>87.0</strong></td>
+                            <td><strong>85.1</strong></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-variable is-8">
+
+                <!-- Part Segmentation Results -->
+                <div class="column">
+                    <div class="content">
+                        <p><strong>Part segmentation results (mean IoU %) on ShapeNetPart.</strong><br>
+                            “Ins. mIoU” denotes instance-average mIoU; “Cls. mIoU” denotes class-average mIoU.
+                        </p>
+                        <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth">
+                            <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Ins. mIoU</th>
+                                <th>Cls. mIoU</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>PointNet</td>
+                                <td>83.7</td>
+                                <td>80.4</td>
+                            </tr>
+                            <tr>
+                                <td>PointNet++</td>
+                                <td>85.1</td>
+                                <td>81.9</td>
+                            </tr>
+                            <tr>
+                                <td>DGCNN</td>
+                                <td>85.2</td>
+                                <td>82.3</td>
+                            </tr>
+                            <tr>
+                                <td>PTv1</td>
+                                <td>86.6</td>
+                                <td>83.7</td>
+                            </tr>
+                            <tr>
+                                <td>AGCN</td>
+                                <td>86.9</td>
+                                <td>85.1</td>
+                            </tr>
+                            <tr>
+                                <td>RSCNN</td>
+                                <td>86.2</td>
+                                <td>84.0</td>
+                            </tr>
+                            <tr>
+                                <td>CurveNet</td>
+                                <td>86.8</td>
+                                <td>84.2</td>
+                            </tr>
+                            <tr>
+                                <td>OTMae3D</td>
+                                <td>86.8</td>
+                                <td>85.1</td>
+                            </tr>
+                            <tr>
+                                <td>PointJEPA</td>
+                                <td>83.9</td>
+                                <td>85.8</td>
+                            </tr>
+                            <tr>
+                                <td>AdaCrossNet</td>
+                                <td>-</td>
+                                <td>85.1</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PointTriPE (ours)</strong></td>
+                                <td><strong>87.0</strong></td>
+                                <td><strong>85.1</strong></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Semantic Segmentation Results -->
+                <div class="column">
+                    <div class="content">
+                        <p><strong>Semantic segmentation results on ScanNet v2.</strong><br>
+                            Mean IoU (%) on validation and test sets.
+                        </p>
+                        <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth">
+                            <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Val mIoU</th>
+                                <th>Test mIoU</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>O-CNN</td>
+                                <td>74.0</td>
+                                <td>72.8</td>
+                            </tr>
+                            <tr>
+                                <td>PointNet++</td>
+                                <td>53.5</td>
+                                <td>33.9</td>
+                            </tr>
+                            <tr>
+                                <td>PointConv</td>
+                                <td>61.0</td>
+                                <td>55.6</td>
+                            </tr>
+                            <tr>
+                                <td>KpConv</td>
+                                <td>69.2</td>
+                                <td>68.0</td>
+                            </tr>
+                            <tr>
+                                <td>Minkowski</td>
+                                <td>72.2</td>
+                                <td>73.4</td>
+                            </tr>
+                            <tr>
+                                <td>SFormer</td>
+                                <td>74.3</td>
+                                <td>73.7</td>
+                            </tr>
+                            <tr>
+                                <td>BPNet</td>
+                                <td>73.9</td>
+                                <td>74.9</td>
+                            </tr>
+                            <tr>
+                                <td>PTv2</td>
+                                <td>75.4</td>
+                                <td>75.2</td>
+                            </tr>
+                            <tr>
+                                <td>KPConvX-L</td>
+                                <td>76.2</td>
+                                <td>75.6</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PointTriPE (ours)</strong></td>
+                                <td><strong>75.0</strong></td>
+                                <td><strong>74.8</strong></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-full-width">
+                    <div class="content has-text-justified">
+                        <p><strong>Semantic segmentation results on S3DIS Area 5.</strong> Class IoUs of
+                            <strong>ceiling</strong>, <strong>floor</strong>, <strong>wall</strong>, and
+                            <strong>beam</strong> are omitted.</p>
+                        <div class="table-container">
+                            <table class="table is-bordered is-striped is-hoverable is-fullwidth is-size-7">
+                                <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>OA</th>
+                                    <th>mAcc</th>
+                                    <th>mIoU</th>
+                                    <th>column</th>
+                                    <th>window</th>
+                                    <th>door</th>
+                                    <th>table</th>
+                                    <th>chair</th>
+                                    <th>sofa</th>
+                                    <th>book.</th>
+                                    <th>board</th>
+                                    <th>clutter</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>PTv1</td>
+                                    <td>90.8</td>
+                                    <td>76.5</td>
+                                    <td>70.4</td>
+                                    <td>38.0</td>
+                                    <td>63.4</td>
+                                    <td>74.3</td>
+                                    <td>89.1</td>
+                                    <td>82.4</td>
+                                    <td>74.3</td>
+                                    <td>80.2</td>
+                                    <td>76.0</td>
+                                    <td>59.3</td>
+                                </tr>
+                                <tr>
+                                    <td>FPT</td>
+                                    <td>-</td>
+                                    <td>77.6</td>
+                                    <td>71.0</td>
+                                    <td>53.8</td>
+                                    <td>71.2</td>
+                                    <td>77.3</td>
+                                    <td>81.3</td>
+                                    <td>89.4</td>
+                                    <td>60.1</td>
+                                    <td>72.8</td>
+                                    <td>80.4</td>
+                                    <td>58.9</td>
+                                </tr>
+                                <tr>
+                                    <td>PointNeXt</td>
+                                    <td>91.0</td>
+                                    <td>77.2</td>
+                                    <td>71.1</td>
+                                    <td>37.7</td>
+                                    <td>59.3</td>
+                                    <td>74.0</td>
+                                    <td>83.1</td>
+                                    <td>91.6</td>
+                                    <td>77.4</td>
+                                    <td>77.2</td>
+                                    <td>78.8</td>
+                                    <td>60.6</td>
+                                </tr>
+                                <tr>
+                                    <td>PointMixer</td>
+                                    <td>-</td>
+                                    <td>77.4</td>
+                                    <td>71.4</td>
+                                    <td>43.8</td>
+                                    <td>62.1</td>
+                                    <td>78.5</td>
+                                    <td>90.6</td>
+                                    <td>82.2</td>
+                                    <td>73.9</td>
+                                    <td>79.8</td>
+                                    <td>78.5</td>
+                                    <td>59.4</td>
+                                </tr>
+                                <tr>
+                                    <td>StratifiedFormer</td>
+                                    <td>91.5</td>
+                                    <td>78.1</td>
+                                    <td>72.0</td>
+                                    <td>46.1</td>
+                                    <td>60.0</td>
+                                    <td>76.8</td>
+                                    <td>92.6</td>
+                                    <td>84.5</td>
+                                    <td>77.8</td>
+                                    <td>75.2</td>
+                                    <td>78.1</td>
+                                    <td>64.0</td>
+                                </tr>
+                                <tr>
+                                    <td>DU-Net</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>72.2</td>
+                                    <td>40.0</td>
+                                    <td>60.7</td>
+                                    <td>82.7</td>
+                                    <td>90.8</td>
+                                    <td>83.1</td>
+                                    <td>78.5</td>
+                                    <td>83.5</td>
+                                    <td>75.9</td>
+                                    <td>64.1</td>
+                                </tr>
+                                <tr>
+                                    <td>PTv2</td>
+                                    <td>91.6</td>
+                                    <td>78.0</td>
+                                    <td>72.0</td>
+                                    <td>34.4</td>
+                                    <td>64.7</td>
+                                    <td>77.9</td>
+                                    <td>93.1</td>
+                                    <td>84.4</td>
+                                    <td>77.3</td>
+                                    <td>86.3</td>
+                                    <td>84.5</td>
+                                    <td>62.2</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>PointTriPE (ours)</strong></td>
+                                    <td><strong>91.3</strong></td>
+                                    <td><strong>78.2</strong></td>
+                                    <td><strong>71.6</strong></td>
+                                    <td><strong>49.2</strong></td>
+                                    <td><strong>59.4</strong></td>
+                                    <td><strong>74.1</strong></td>
+                                    <td><strong>82.5</strong></td>
+                                    <td><strong>92.8</strong></td>
+                                    <td><strong>85.0</strong></td>
+                                    <td><strong>80.1</strong></td>
+                                    <td><strong>73.3</strong></td>
+                                    <td><strong>64.1</strong></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container is-max-desktop">
+            <!-- Concurrent Work. -->
+            <div class="columns is-centered has-text-centered">
+                <div class="column is-full-width">
+                    <div class="content has-text-justified">
+                        <img src="./dynamic/result/attnmap.png">
+                        <p><strong>Normalized attention variation on an airplane sample from ModelNet40. </strong> Each
+                            subfigure corresponds to one of the 9 selected query points (stars), projected onto the XY
+                            plane. Neighboring points are shown as circles, where the size reflects their distance to
+                            the query, and color denotes the attention change induced by the positional encoding.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+
+</html>
